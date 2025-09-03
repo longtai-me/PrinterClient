@@ -23,6 +23,7 @@ import timber.log.Timber;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -348,6 +349,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             public void run() {
                 try {
                     printerService.printEscposData(new byte[]{0x1b, 0x40});
+                    // `GS r` to get printer sensor status
+                    byte[] ret = printerService.printEscposData(new byte[]{0x1d, 0x72, 0x01});
+                    showLog("Printer status: " + Arrays.toString(ret));
                     printerService.printEscposData(new byte[]{0x1b, 0x61, 0x01, 0x1b, 0x21, 48});
                     printerService.printEscposData("Receipt\n".getBytes());
                     printerService.printEscposData(new byte[]{0x1b, 0x61, 0x00, 0x1b, 0x21, 0x00});

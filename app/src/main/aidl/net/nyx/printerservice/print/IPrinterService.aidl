@@ -143,9 +143,9 @@ interface IPrinterService {
      *
      * @param cmd ESC/POS commands
      * @return Result
-     * @since PrinterService v1.5.9
+     * @since PrinterService v1.5.9 support ESC commands with responses, such as `GS r`, `ESC v`, etc.
      */
-    int printEscposData(in byte[] cmd);
+    byte[] printEscposData(in byte[] cmd);
 
     /**
      * Print a row of a table

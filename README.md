@@ -126,6 +126,8 @@ private void printTable() {
 For details about the common ESC instruction set, please see [ESC/POS Commands](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/commands.html)
 
 **Note**: This interface is different from other SDK synchronization interfaces. This interface is asynchronous. Calling this interface will only transmit ESC/POS instructions to the instruction queue. The return value indicates that the instruction is successfully enqueued and will not return to the printer status. Do not mix this interface with other interfaces, otherwise the order of printing content will be inconsistent. Here only provides additional options for customers using ESC/POS instructions.
+
+Since **PrinterService v1.9.6**, it has support ESC/POS commands with responses, such as `GS r` and `ESC v`
 ```
 private void printEscpos() {
     singleThreadExecutor.submit(new Runnable() {
@@ -133,6 +135,9 @@ private void printEscpos() {
         public void run() {
             try {
                 printerService.printEscposData(new byte[]{0x1b, 0x40});
+                // `GS r` to get printer sensor status
+                byte[] ret = printerService.printEscposData(new byte[]{0x1d, 0x72, 0x01});
+                showLog("Printer status: " + Arrays.toString(ret));
                 printerService.printEscposData(new byte[]{0x1b, 0x61, 0x01, 0x1b, 0x21, 48});
                 printerService.printEscposData("Receipt\n".getBytes());
                 printerService.printEscposData(new byte[]{0x1b, 0x61, 0x00, 0x1b, 0x21, 0x00});
