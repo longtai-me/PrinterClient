@@ -229,6 +229,13 @@ private void printLabelLearning() {
 ### Printer result
 All the printer interfaces will return the integer result, please refer to [SdkResult.java](app/src/main/java/net/nyx/printerclient/SdkResult.java)
 
+### Others
+
+#### 1. Dynamically switch print density
+[net.nyx.printerservice.print.IPrinterService.aidl](app/src/main/aidl/net/nyx/printerservice/print/IPrinterService.aidl) `setPrinterDensity` `getPrinterDensity`
+
+#### 2. Use 58mm paper on 80mm printer
+[net.nyx.printerservice.print.IPrinterService.aidl](app/src/main/aidl/net/nyx/printerservice/print/IPrinterService.aidl) `setPaperWidth`
 
 ## LCD customer display
 Devices that support the customer display screen can control the LCD. Device without this module will return an error when calling the interface

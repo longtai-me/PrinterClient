@@ -232,6 +232,15 @@ private void printLabelLearning() {
 ### 打印结果
 所有打印接口都返回int类型结果，参考 [SdkResult.java](app/src/main/java/net/nyx/printerclient/SdkResult.java) 对打印结果进行相关处理
 
+### 打印补充
+
+#### 1. 动态切换打印浓度
+[net.nyx.printerservice.print.IPrinterService.aidl](app/src/main/aidl/net/nyx/printerservice/print/IPrinterService.aidl) `setPrinterDensity` `getPrinterDensity`
+
+#### 2. 80mm打印头使用58mm纸
+[net.nyx.printerservice.print.IPrinterService.aidl](app/src/main/aidl/net/nyx/printerservice/print/IPrinterService.aidl) `setPaperWidth`
+
+
 ## 客显屏
 支持客显屏的设备可控制显示，无该模块的设备调用接口将会返回错误
 

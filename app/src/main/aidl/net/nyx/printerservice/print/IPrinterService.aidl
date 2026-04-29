@@ -232,4 +232,16 @@ interface IPrinterService {
      * @since PrinterService v1.9.2
      */
     int setPrinterDensity(int density);
+
+
+    /**
+     * Set paper width. Primarily used for printing 58mm paper on 80mm printer.
+     *
+     * @param width Paper width
+     *              58mm: 384
+     *              80mm: 384/576
+     * @return Result
+     * @since PrinterService v2.0.5
+     */
+    int setPaperWidth(int width);
 }
