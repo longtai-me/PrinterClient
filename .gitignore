@@ -46,3 +46,9 @@ release/
 debug/
 apk/
 doc
+# Kotlin / Gradle 8
+.kotlin/
+
+# Release signing secrets (see README: keystore.properties)
+keystore.properties
+*.keystore
