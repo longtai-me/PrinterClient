@@ -83,7 +83,7 @@ class ProductEditViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repository: ProductRepository,
     private val printer: PosPrinter,
-    settingsRepository: PosSettingsRepository,
+    private val settingsRepository: PosSettingsRepository,
 ) : ViewModel() {
     private val productId: Long = savedState.get<Long>("id") ?: 0L
     val money: MoneyFormat get() = settingsRepository.settings.value.money

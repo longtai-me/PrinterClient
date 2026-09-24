@@ -1,5 +1,7 @@
 [中文文档](README-ZH.md)
 
+> **Apps built on this SDK:** a retail checkout POS (`pos-app`) and a ticket redemption / access-control app (`ticket-app`) for NYX handheld terminals. See [APPS.md](APPS.md) (Traditional Chinese) for features, build and hardware setup. The sections below document the vendor printer SDK demo in `app/`.
+
 PrinterClient
 ==========
 ### 

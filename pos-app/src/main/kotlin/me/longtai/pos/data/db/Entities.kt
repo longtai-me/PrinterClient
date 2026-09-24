@@ -129,7 +129,7 @@ data class PaymentEntity(
 @Entity(tableName = "order_sequences")
 data class OrderSequenceEntity(
     @PrimaryKey val day: String,
-    val last: Int,
+    val lastSeq: Int,
 )
 
 data class OrderWithDetails(

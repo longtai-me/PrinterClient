@@ -15,11 +15,11 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "me.longtai.pos"
+    namespace = "me.longtai.ticket"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "me.longtai.pos"
+        applicationId = "me.longtai.ticket"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -68,7 +68,7 @@ ksp {
 }
 
 dependencies {
-    implementation(project(":pos-domain"))
+    implementation(project(":ticket-domain"))
     implementation(project(":core-ui"))
     implementation(project(":core-auth"))
     implementation(platform(libs.androidx.compose.bom))

@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +56,7 @@ fun NumericKeypad(
                                 modifier = Modifier.fillMaxWidth().height(keyHeight.dp),
                             ) {
                                 if (key == BACKSPACE) {
-                                    Icon(Icons.Filled.Backspace, contentDescription = "刪除")
+                                    Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "刪除")
                                 } else {
                                     Text(key, style = MaterialTheme.typography.titleLarge)
                                 }

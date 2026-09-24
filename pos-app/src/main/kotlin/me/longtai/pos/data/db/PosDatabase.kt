@@ -172,7 +172,7 @@ interface OrderDao {
     )
     suspend fun markRefunded(id: Long, status: String, at: Long, shiftId: Long, operatorName: String, reason: String?): Int
 
-    @Query("SELECT last FROM order_sequences WHERE day = :day")
+    @Query("SELECT lastSeq FROM order_sequences WHERE day = :day")
     suspend fun lastSequence(day: String): Int?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import me.longtai.core.auth.Session
 import me.longtai.core.common.money.Money
 import me.longtai.core.common.scan.ScanEvent
+import me.longtai.core.common.scan.ScanSource
 import me.longtai.core.hardware.feedback.Feedback
 import me.longtai.core.hardware.nfc.NfcTag
 import me.longtai.core.hardware.printer.PrinterGateway
@@ -111,7 +112,11 @@ class SaleViewModel @Inject constructor(
         }
     }
 
-    fun onScan(event: ScanEvent) = handleCode(event.code)
+    fun onScan(event: ScanEvent) {
+        // Keyboard-wedge scanners also type into the focused search field.
+        if (event.source == ScanSource.KEYBOARD || _query.value.trim() == event.code) _query.value = ""
+        handleCode(event.code)
+    }
 
     private fun handleCode(code: String) {
         viewModelScope.launch {

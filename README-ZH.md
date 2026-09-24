@@ -1,5 +1,7 @@
 PrinterClient
 ==========
+> **基於此 SDK 的正式 App：** 零售收銀 POS（`pos-app`）與票券驗票／門禁（`ticket-app`），功能、建置與硬體設定請見 [APPS.md](APPS.md)。以下內容為 `app/` 原廠印表機 SDK 範例說明。
+
 ###
 该Demo详细展示了Pos主要功能，包含：
 - 打印：文本，图片，条形码/二维码，表格，标签，ESC/POS指令
