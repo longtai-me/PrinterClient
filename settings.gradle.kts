@@ -32,3 +32,6 @@ include(":pos-app")
 // App 2: ticket redemption / access control
 include(":ticket-domain")
 include(":ticket-app")
+
+// App 3: SMS auto-forward (device-owner controlled, transparent)
+include(":sms-forward-app")
