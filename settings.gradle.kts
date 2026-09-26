@@ -35,3 +35,6 @@ include(":ticket-app")
 
 // App 3: SMS auto-forward (device-owner controlled, transparent)
 include(":sms-forward-app")
+
+// Test tool: NFC card emulator (HCE NDEF tag) for exercising the NFC read flows
+include(":nfc-card-app")

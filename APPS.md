@@ -7,6 +7,7 @@
 | 收銀 POS | `pos-app` | `me.longtai.pos` | 零售結帳收銀、會員、庫存、交班報表 |
 | 票券驗票 | `ticket-app` | `me.longtai.ticket` | 票券發行、入出場核銷、門禁人數控管 |
 | 簡訊轉發 | `sms-forward-app` | `me.longtai.smsforward` | 把本機收到的簡訊自動轉發到自己的另一支門號 |
+| NFC 卡模擬 | `nfc-card-app` | `me.longtai.nfccard` | 測試工具：用另一支手機模擬 NFC 標籤，方便測 POS／驗票的感應流程 |
 
 兩支 App 都能**完全離線運作**，資料存在本機（Room / SQLite），並可匯出 CSV。
 
@@ -62,6 +63,20 @@
 > ⚠️ **上架限制**：Google Play 對簡訊權限（`RECEIVE_SMS`／`SEND_SMS`）審核極嚴，一般 App 無法取得；此 App 適合**自用側載（sideload）**安裝。若要上架需另行向 Google 申請權限用途豁免。
 >
 > ⚠️ 轉發是透過電信簡訊發送，**每則會依你的資費計費**；請留意量大時的費用。
+
+### NFC 卡模擬（`nfc-card-app`）
+
+測試用工具。用**另一支支援 NFC 的手機**把自己模擬成一張 NFC 標籤，拿去碰 POS／驗票機的感應區，就能測「感應卡片帶出會員／驗票」的流程，不必準備實體卡。
+
+- 以 Android HCE（Host Card Emulation）模擬 **NFC Forum Type 4 NDEF 標籤**（AID `D2760000850101`），送出一筆 **Text 記錄**。
+- 可儲存多張預設卡（會員卡號、票券代碼、純文字），選一張當「目前模擬的卡」；畫面上有大字提示「將手機背面靠近讀卡機」。
+- 搭配方式：
+  - **測 POS 會員**：模擬一張 payload = 會員編號（例 `M0001`）的卡 → 碰收銀機 → POS 以 NDEF 內容查到會員並帶入。
+  - **測驗票**：模擬 payload = 票券代碼（或簽章票券 `TK1...` 字串）的卡 → 碰驗票機 → 走 NDEF 內容驗票。
+
+> ⚠️ **手機模擬的先天限制**：Android HCE 每次感應都會產生**隨機卡號 UID**（非 root 無法固定）。因此**用「卡號 UID」綁定的功能無法用手機測試**（每次 UID 都不同對不起來），請改用「代碼／NDEF 內容」這條路；要測 UID 綁定請用實體 NFC 卡。
+>
+> 讀卡端（`core-hardware` 的 `NfcReader`）以 reader mode 讀取，會先試 UID、再退回讀 NDEF 文字；本模擬器走的是後者。
 
 ### 兩支 POS／票券 App 共用
 
@@ -119,11 +134,13 @@
 ./gradlew :ticket-app:assembleDebug
 
 ./gradlew :sms-forward-app:assembleDebug
+./gradlew :nfc-card-app:assembleDebug
 
 # 直接安裝到已連線的裝置
 ./gradlew :pos-app:installDebug
 ./gradlew :ticket-app:installDebug
 ./gradlew :sms-forward-app:installDebug
+./gradlew :nfc-card-app:installDebug   # 裝在另一支手機當測試卡
 
 # 業務邏輯單元測試（48 項）
 ./gradlew :core-common:test :pos-domain:test :ticket-domain:test
