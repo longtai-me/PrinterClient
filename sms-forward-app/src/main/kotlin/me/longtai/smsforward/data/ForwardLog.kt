@@ -23,12 +23,23 @@ enum class ForwardStatus(val label: String) {
     SKIPPED("略過"),
 }
 
+enum class ForwardChannel(val label: String) {
+    SMS("簡訊"),
+    TELEGRAM("Telegram"),
+
+    /** Message-level entry not tied to a channel (e.g. filtered out). */
+    GENERAL("—"),
+}
+
 @Entity(tableName = "forward_log")
 data class ForwardLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val receivedAt: Long,
     val fromNumber: String,
-    val targetNumber: String,
+    /** Which channel this entry is about. */
+    val channel: String,
+    /** Destination shown to the user: the SMS number, or "Telegram". */
+    val destination: String,
     /** Truncated preview only; the full body is never persisted beyond the forward itself. */
     val preview: String,
     val status: String,

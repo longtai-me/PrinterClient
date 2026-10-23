@@ -27,7 +27,7 @@ class BootReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 val settings = settingsRepository.current()
-                notifications.showStatus(settings.enabled, settings.targetNumber)
+                notifications.showStatus(settings.enabled, settings.statusSummary())
             } finally {
                 pending.finish()
             }

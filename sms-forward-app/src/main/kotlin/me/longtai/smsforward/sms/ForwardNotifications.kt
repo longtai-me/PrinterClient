@@ -45,8 +45,8 @@ class ForwardNotifications @Inject constructor(
         return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
     }
 
-    /** Shows or hides the ongoing "forwarding is active" banner. */
-    fun showStatus(enabled: Boolean, targetNumber: String) {
+    /** Shows or hides the ongoing "forwarding is active" banner. [summary] names the active channels. */
+    fun showStatus(enabled: Boolean, summary: String) {
         ensureChannels()
         if (!enabled) {
             manager.cancel(ID_STATUS)
@@ -55,7 +55,7 @@ class ForwardNotifications @Inject constructor(
         val notification = NotificationCompat.Builder(context, CHANNEL_STATUS)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle("簡訊轉發運作中")
-            .setContentText("收到的簡訊會轉發到 $targetNumber")
+            .setContentText("收到的簡訊會轉發：$summary")
             .setOngoing(true)
             .setContentIntent(openAppIntent())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
@@ -64,12 +64,12 @@ class ForwardNotifications @Inject constructor(
         safeNotify(ID_STATUS, notification)
     }
 
-    fun notifyForwarded(fromNumber: String, targetNumber: String, success: Boolean) {
+    fun notifyForwarded(fromNumber: String, destination: String, success: Boolean) {
         ensureChannels()
         val notification = NotificationCompat.Builder(context, CHANNEL_EVENT)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle(if (success) "已轉發簡訊" else "簡訊轉發失敗")
-            .setContentText("來自 $fromNumber → $targetNumber")
+            .setContentText("來自 $fromNumber → $destination")
             .setAutoCancel(true)
             .setContentIntent(openAppIntent())
             .build()
