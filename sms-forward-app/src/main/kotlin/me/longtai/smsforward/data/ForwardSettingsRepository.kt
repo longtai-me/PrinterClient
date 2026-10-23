@@ -59,6 +59,7 @@ private val Context.forwardDataStore: DataStore<Preferences> by preferencesDataS
 @Singleton
 class ForwardSettingsRepository @Inject constructor(
     @ApplicationContext context: Context,
+    private val cipher: SecretCipher,
 ) {
     private val store = context.forwardDataStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -85,7 +86,7 @@ class ForwardSettingsRepository @Inject constructor(
             smsChannelEnabled = this[Keys.SMS_CHANNEL] ?: d.smsChannelEnabled,
             telegramChannelEnabled = this[Keys.TG_CHANNEL] ?: d.telegramChannelEnabled,
             targetNumber = this[Keys.TARGET] ?: d.targetNumber,
-            telegramBotToken = this[Keys.TG_TOKEN] ?: d.telegramBotToken,
+            telegramBotToken = this[Keys.TG_TOKEN]?.let { cipher.reveal(it) } ?: d.telegramBotToken,
             telegramChatId = this[Keys.TG_CHAT] ?: d.telegramChatId,
             includeSenderInfo = this[Keys.INCLUDE_SENDER] ?: d.includeSenderInfo,
             keywordFilter = this[Keys.KEYWORDS] ?: d.keywordFilter,
@@ -102,7 +103,7 @@ class ForwardSettingsRepository @Inject constructor(
             p[Keys.SMS_CHANNEL] = s.smsChannelEnabled
             p[Keys.TG_CHANNEL] = s.telegramChannelEnabled
             p[Keys.TARGET] = s.targetNumber.trim()
-            p[Keys.TG_TOKEN] = s.telegramBotToken.trim()
+            p[Keys.TG_TOKEN] = cipher.protect(s.telegramBotToken.trim())
             p[Keys.TG_CHAT] = s.telegramChatId.trim()
             p[Keys.INCLUDE_SENDER] = s.includeSenderInfo
             p[Keys.KEYWORDS] = s.keywordFilter.trim()

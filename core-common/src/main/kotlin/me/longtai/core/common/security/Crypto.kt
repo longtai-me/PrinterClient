@@ -25,7 +25,7 @@ object Hmac {
  */
 object PinHasher {
     private const val PREFIX = "pbkdf2-sha256"
-    private const val DEFAULT_ITERATIONS = 20_000
+    private const val DEFAULT_ITERATIONS = 210_000
     private const val SALT_BYTES = 16
     private const val KEY_BYTES = 32
 

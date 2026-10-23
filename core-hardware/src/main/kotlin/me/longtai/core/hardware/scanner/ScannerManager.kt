@@ -52,10 +52,25 @@ class ScannerManager @Inject constructor(
         }
     }
 
-    /** Starts listening for scan head results; call while an activity is started. */
+    /**
+     * Starts listening for scan head results; call while an activity is started.
+     *
+     * The scan head result arrives as a broadcast from the vendor firmware (a different process),
+     * so the receiver must be exported. Exported-without-permission means any installed app can
+     * also send [ACTION_SCAN_HEAD] and inject a forged scan. If the device's SDK documents a
+     * permission that its firmware holds when broadcasting the scan, set [SCAN_BROADCAST_PERMISSION]
+     * to it to close that injection vector; the receiver then only accepts broadcasts from holders.
+     */
     fun register() {
         if (registered) return
-        ContextCompat.registerReceiver(context, receiver, IntentFilter(ACTION_SCAN_HEAD), ContextCompat.RECEIVER_EXPORTED)
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(ACTION_SCAN_HEAD),
+            SCAN_BROADCAST_PERMISSION,
+            null,
+            ContextCompat.RECEIVER_EXPORTED,
+        )
         registered = true
     }
 
@@ -77,7 +92,8 @@ class ScannerManager @Inject constructor(
         if (clean.isEmpty()) return
         val now = SystemClock.elapsedRealtime()
         if (source != ScanSource.MANUAL && !debouncer.accept(clean, now)) return
-        Timber.d("scan %s: %s", source, clean)
+        // Don't log the scanned value itself (may be a ticket code, member id, etc.).
+        Timber.d("scan %s (len=%d)", source, clean.length)
         _events.tryEmit(ScanEvent(clean, source, System.currentTimeMillis()))
     }
 
@@ -120,5 +136,12 @@ class ScannerManager @Inject constructor(
         const val EXTRA_SCAN_HEAD = "qsc"
         const val CAMERA_SCANNER_PACKAGE = "net.nyx.scanner"
         const val CAMERA_SCANNER_ACTIVITY = "net.nyx.scanner.ScannerActivity"
+
+        /**
+         * Permission a sender must hold to deliver [ACTION_SCAN_HEAD]. Null accepts any sender
+         * (required when the vendor permission is unknown). Set this to the device firmware's
+         * scan-broadcast permission to prevent other apps from injecting forged scans.
+         */
+        val SCAN_BROADCAST_PERMISSION: String? = null
     }
 }

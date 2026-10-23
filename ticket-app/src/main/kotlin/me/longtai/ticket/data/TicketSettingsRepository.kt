@@ -60,6 +60,7 @@ private val Context.ticketDataStore: DataStore<Preferences> by preferencesDataSt
 @Singleton
 class TicketSettingsRepository @Inject constructor(
     @ApplicationContext context: Context,
+    private val cipher: SecretCipher,
 ) {
     private val store = context.ticketDataStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -88,7 +89,7 @@ class TicketSettingsRepository @Inject constructor(
         // Every installation gets its own signing key until an administrator imports a shared one.
         scope.launch {
             if (store.data.first()[Keys.SECRET] == null) {
-                store.edit { if (it[Keys.SECRET] == null) it[Keys.SECRET] = Hex.encode(SignedTicketCodec.generateSecret()) }
+                store.edit { if (it[Keys.SECRET] == null) it[Keys.SECRET] = cipher.protect(Hex.encode(SignedTicketCodec.generateSecret())) }
             }
         }
     }
@@ -112,7 +113,7 @@ class TicketSettingsRepository @Inject constructor(
             printOnAccept = enumOr(this[Keys.PRINT_ON_ACCEPT], d.printOnAccept),
             issueTarget = enumOr(this[Keys.ISSUE_TARGET], d.issueTarget),
             signedTickets = this[Keys.SIGNED] ?: d.signedTickets,
-            secretHex = this[Keys.SECRET],
+            secretHex = this[Keys.SECRET]?.let { cipher.reveal(it) }?.takeIf { it.isNotEmpty() },
         )
     }
 
@@ -137,7 +138,7 @@ class TicketSettingsRepository @Inject constructor(
             p[Keys.PRINT_ON_ACCEPT] = s.printOnAccept.name
             p[Keys.ISSUE_TARGET] = s.issueTarget.name
             p[Keys.SIGNED] = s.signedTickets
-            s.secretHex?.let { p[Keys.SECRET] = it }
+            s.secretHex?.let { p[Keys.SECRET] = cipher.protect(it) }
         }
     }
 }
