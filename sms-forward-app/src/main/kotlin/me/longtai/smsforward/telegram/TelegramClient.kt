@@ -68,13 +68,13 @@ class TelegramClient @Inject constructor() {
         connection.doOutput = true
         connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
         connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-        return read(connection)
+        return read(connection, token)
     }
 
     private fun get(token: String, methodWithQuery: String): JSONObject {
         val connection = open(token, methodWithQuery)
         connection.requestMethod = "GET"
-        return read(connection)
+        return read(connection, token)
     }
 
     @Suppress("DEPRECATION")
@@ -87,20 +87,29 @@ class TelegramClient @Inject constructor() {
         }
     }
 
-    private fun read(connection: HttpURLConnection): JSONObject {
+    private fun read(connection: HttpURLConnection, token: String): JSONObject {
         return try {
             val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "{}"
             JSONObject(text)
         } catch (e: Exception) {
-            Timber.w(e, "telegram read failed")
-            throw IOException("連線失敗：${e.message}")
+            // Network exception messages (and the URL they embed) can contain the bot token.
+            // Never log the raw exception or surface its message without redacting the token first.
+            val reason = redact(token, e.message)
+            Timber.w("telegram read failed: %s", reason)
+            throw IOException("連線失敗：$reason")
         } finally {
             connection.disconnect()
         }
     }
 
     private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    /** Removes the bot token from any string before it is logged or shown to the user. */
+    private fun redact(token: String, text: String?): String {
+        val message = text?.takeIf { it.isNotBlank() } ?: "連線失敗"
+        return if (token.isNotEmpty()) message.replace(token, "<token>") else message
+    }
 
     private companion object {
         const val TIMEOUT_MS = 8_000
