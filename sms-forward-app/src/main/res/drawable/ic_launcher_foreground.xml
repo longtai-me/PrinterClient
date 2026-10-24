@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chat bubble with forward arrow on the adaptive icon safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,36h40a6,6 0,0 1,6 6v20a6,6 0,0 1,-6 6H52l-12,10v-10h-6a6,6 0,0 1,-6 -6V42a6,6 0,0 1,6 -6z" />
+    <path
+        android:fillColor="#00696E"
+        android:pathData="M50,46l14,6l-14,6l0,-4l-10,0l0,-4l10,0z" />
+</vector>

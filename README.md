@@ -1,5 +1,7 @@
 [中文文档](README-ZH.md)
 
+> **Apps built on this SDK:** a retail checkout POS (`pos-app`), a ticket redemption / access-control app (`ticket-app`), an SMS auto-forward app (`sms-forward-app`), and an NFC card emulator test tool (`nfc-card-app`) for NYX handheld terminals. They target **Android 16 (API 36)** and also run on Android 17. See [APPS.md](APPS.md) (Traditional Chinese) for features and hardware setup, and [RELEASE.md](RELEASE.md) for building and installing the APKs (incl. a GitHub Actions workflow that produces them). The sections below document the vendor printer SDK demo in `app/`.
+
 PrinterClient
 ==========
 ### 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NFC 卡模擬</string>
+    <string name="hce_desc">模擬 NFC 標籤（測試用）</string>
+    <string name="aid_group_desc">NDEF 標籤</string>
+</resources>

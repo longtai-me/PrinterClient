@@ -1,0 +1,146 @@
+package me.longtai.smsforward.telegram
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import timber.log.Timber
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Minimal Telegram Bot API client used to forward messages to the owner's own chat.
+ * Uses HttpURLConnection so it needs no extra dependency. All calls run on the IO dispatcher
+ * with short timeouts so they stay within the SMS receiver's background window.
+ */
+/** One Telegram update. [chatId]/[text] are empty for updates without a text message. */
+data class TgUpdate(val updateId: Long, val chatId: String, val text: String)
+
+@Singleton
+class TelegramClient @Inject constructor() {
+
+    /**
+     * Long-polls for new updates since [offset]. Holds the connection up to [longPollSeconds] on
+     * the server, so the read timeout is set well beyond it. Only message updates are requested.
+     */
+    suspend fun getUpdates(token: String, offset: Long, longPollSeconds: Int): Result<List<TgUpdate>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val path = "getUpdates?offset=$offset&timeout=$longPollSeconds&allowed_updates=%5B%22message%22%5D"
+                val connection = open(token, path, readTimeoutMs = (longPollSeconds + 10) * 1000)
+                connection.requestMethod = "GET"
+                val json = read(connection, token)
+                if (!json.optBoolean("ok", false)) throw IOException(redact(token, json.optString("description", "getUpdates 失敗")))
+                val result = json.optJSONArray("result") ?: return@runCatching emptyList()
+                (0 until result.length()).map { i ->
+                    val update = result.getJSONObject(i)
+                    val message = update.optJSONObject("message")
+                    TgUpdate(
+                        updateId = update.optLong("update_id"),
+                        chatId = message?.optJSONObject("chat")?.opt("id")?.toString() ?: "",
+                        text = message?.optString("text", "") ?: "",
+                    )
+                }
+            }
+        }
+
+    /** Sends [text] to [chatId] through the bot. */
+    suspend fun sendMessage(token: String, chatId: String, text: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = buildString {
+                append("chat_id=").append(encode(chatId))
+                append("&disable_web_page_preview=true")
+                append("&text=").append(encode(text.take(MAX_TELEGRAM_CHARS)))
+            }
+            val json = post(token, "sendMessage", body)
+            if (!json.optBoolean("ok", false)) {
+                throw IOException(json.optString("description", "Telegram 回應失敗"))
+            }
+        }
+    }
+
+    /**
+     * Finds the chat id of the most recent message sent to the bot, so the owner can tap
+     * "detect" after messaging their bot instead of looking the id up by hand.
+     */
+    suspend fun detectChatId(token: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val json = get(token, "getUpdates?limit=10&timeout=0")
+            if (!json.optBoolean("ok", false)) throw IOException(json.optString("description", "無法取得更新"))
+            val updates = json.optJSONArray("result") ?: throw IOException("沒有更新")
+            for (i in updates.length() - 1 downTo 0) {
+                val message = updates.getJSONObject(i).let { it.optJSONObject("message") ?: it.optJSONObject("channel_post") }
+                val chat = message?.optJSONObject("chat")
+                val id = chat?.opt("id")?.toString()
+                if (!id.isNullOrEmpty()) return@runCatching id
+            }
+            throw IOException("找不到對話，請先在 Telegram 對這個 Bot 傳一則訊息")
+        }
+    }
+
+    /** Verifies a token and returns the bot's @username. */
+    suspend fun getMe(token: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val json = get(token, "getMe")
+            if (!json.optBoolean("ok", false)) throw IOException(json.optString("description", "Token 無效"))
+            json.getJSONObject("result").optString("username", "bot")
+        }
+    }
+
+    private fun post(token: String, method: String, body: String): JSONObject {
+        val connection = open(token, method)
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+        connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+        return read(connection, token)
+    }
+
+    private fun get(token: String, methodWithQuery: String): JSONObject {
+        val connection = open(token, methodWithQuery)
+        connection.requestMethod = "GET"
+        return read(connection, token)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun open(token: String, path: String, readTimeoutMs: Int = TIMEOUT_MS): HttpURLConnection {
+        require(token.contains(':')) { "Token 格式錯誤" }
+        val url = URL("https://api.telegram.org/bot$token/$path")
+        return (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = TIMEOUT_MS
+            readTimeout = readTimeoutMs
+        }
+    }
+
+    private fun read(connection: HttpURLConnection, token: String): JSONObject {
+        return try {
+            val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
+            val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "{}"
+            JSONObject(text)
+        } catch (e: Exception) {
+            // Network exception messages (and the URL they embed) can contain the bot token.
+            // Never log the raw exception or surface its message without redacting the token first.
+            val reason = redact(token, e.message)
+            Timber.w("telegram read failed: %s", reason)
+            throw IOException("連線失敗：$reason")
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    /** Removes the bot token from any string before it is logged or shown to the user. */
+    private fun redact(token: String, text: String?): String {
+        val message = text?.takeIf { it.isNotBlank() } ?: "連線失敗"
+        return if (token.isNotEmpty()) message.replace(token, "<token>") else message
+    }
+
+    private companion object {
+        const val TIMEOUT_MS = 8_000
+        const val MAX_TELEGRAM_CHARS = 4_000
+    }
+}
