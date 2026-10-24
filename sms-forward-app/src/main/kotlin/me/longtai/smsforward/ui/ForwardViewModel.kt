@@ -16,9 +16,11 @@ import me.longtai.smsforward.data.ForwardLogDao
 import me.longtai.smsforward.data.ForwardLogEntity
 import me.longtai.smsforward.data.ForwardSettings
 import me.longtai.smsforward.data.ForwardSettingsRepository
+import me.longtai.smsforward.data.MessageTemplate
 import me.longtai.smsforward.sms.ForwardNotifications
 import me.longtai.smsforward.sms.SmsForwarder
 import me.longtai.smsforward.telegram.TelegramClient
+import me.longtai.smsforward.telegram.TelegramServiceController
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,6 +29,7 @@ class ForwardViewModel @Inject constructor(
     private val forwarder: SmsForwarder,
     private val telegramClient: TelegramClient,
     private val notifications: ForwardNotifications,
+    private val serviceController: TelegramServiceController,
     private val logDao: ForwardLogDao,
 ) : ViewModel() {
 
@@ -62,8 +65,25 @@ class ForwardViewModel @Inject constructor(
     fun setTarget(number: String) = updateAndRefresh { it.copy(targetNumber = number) }
     fun setTelegramToken(token: String) = updateAndRefresh { it.copy(telegramBotToken = token) }
     fun setTelegramChatId(chatId: String) = updateAndRefresh { it.copy(telegramChatId = chatId) }
-    fun setIncludeSenderInfo(include: Boolean) = updateAndRefresh { it.copy(includeSenderInfo = include) }
+    fun setTemplate(template: String) = updateAndRefresh { it.copy(template = template) }
+    fun resetTemplate() = updateAndRefresh { it.copy(template = MessageTemplate.DEFAULT) }
     fun setKeywordFilter(keywords: String) = updateAndRefresh { it.copy(keywordFilter = keywords) }
+
+    /** Inserts a template variable into the template at the end (simple append). */
+    fun appendTemplateVariable(variable: String) = updateAndRefresh { it.copy(template = it.template + variable) }
+
+    /** Telegram command listener: only allowed once the bot (token + chat id) is configured. */
+    fun setTelegramCommands(enabled: Boolean) {
+        if (enabled && !settings.value.telegramConfigured) {
+            _messages.tryEmit("請先設定 Bot Token 與 Chat ID")
+            return
+        }
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(telegramCommandsEnabled = enabled) }
+            serviceController.sync()
+            _messages.emit(if (enabled) "已開始接收 Telegram 指令" else "已停止接收 Telegram 指令")
+        }
+    }
 
     /** Reads the chat id of the most recent message the bot received, and verifies the token. */
     fun detectChatId() {
@@ -95,6 +115,8 @@ class ForwardViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.update(transform)
             refreshStatusNotification()
+            // Token/chat-id changes may start or stop the command listener.
+            serviceController.sync()
         }
     }
 

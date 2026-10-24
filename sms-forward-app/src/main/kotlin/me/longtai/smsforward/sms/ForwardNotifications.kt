@@ -37,6 +37,25 @@ class ForwardNotifications @Inject constructor(
                 description = "每次轉發簡訊時的通知"
             },
         )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_COMMAND, "Telegram 指令", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "顯示是否正在接收 Telegram 指令"
+            },
+        )
+    }
+
+    /** Ongoing notification for the command-listener foreground service (transparency). */
+    fun commandServiceNotification(): android.app.Notification {
+        ensureChannels()
+        return NotificationCompat.Builder(context, CHANNEL_COMMAND)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle("Telegram 指令接收中")
+            .setContentText("此裝置會依你在 Telegram 的指令發送簡訊")
+            .setOngoing(true)
+            .setContentIntent(openAppIntent())
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
     }
 
     private fun openAppIntent(): PendingIntent {
@@ -87,7 +106,9 @@ class ForwardNotifications @Inject constructor(
     companion object {
         const val CHANNEL_STATUS = "forward_status"
         const val CHANNEL_EVENT = "forward_events"
+        const val CHANNEL_COMMAND = "forward_commands"
         const val ID_STATUS = 1
+        const val ID_COMMAND = 2
         const val ID_EVENT_BASE = 1000
     }
 }

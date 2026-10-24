@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.longtai.smsforward.data.ForwardChannel
 import me.longtai.smsforward.data.ForwardLogEntity
 import me.longtai.smsforward.data.ForwardStatus
+import me.longtai.smsforward.data.MessageTemplate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,7 +75,7 @@ private val requiredPermissions: Array<String>
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
     }.toTypedArray()
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ForwardScreen(viewModel: ForwardViewModel = hiltViewModel()) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -184,18 +188,53 @@ fun ForwardScreen(viewModel: ForwardViewModel = hiltViewModel()) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        SwitchRow(
+                            title = "允許 Telegram 指令發簡訊",
+                            subtitle = "在你的 Bot 聊天室輸入指令，這台手機就依指令發簡訊",
+                            checked = settings.telegramCommandsEnabled,
+                            onCheckedChange = viewModel::setTelegramCommands,
+                            enabled = settings.telegramConfigured || settings.telegramCommandsEnabled,
+                        )
+                        if (settings.telegramCommandsEnabled) {
+                            Text(
+                                "指令：/sms 門號 內容、/reply 內容、/ping、/help。\n" +
+                                    "⚠️ 只接受你設定的 Chat ID 送來的指令。持有此 Bot 者即可叫這台手機發簡訊並計費，" +
+                                    "請妥善保管 Token，並使用「你與 Bot 的私人聊天室」而非群組。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
 
-            // --- shared options ---
+            // --- message template ---
             item {
-                SwitchRow(
-                    title = "附上來源與時間",
-                    subtitle = "轉發內容開頭加上原寄件人與收到時間",
-                    checked = settings.includeSenderInfo,
-                    onCheckedChange = viewModel::setIncludeSenderInfo,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(
+                        value = settings.template,
+                        onValueChange = viewModel::setTemplate,
+                        label = { Text("轉發內容格式") },
+                        supportingText = { Text("用變數自訂開頭／結尾；{body} 代表簡訊內容") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        MessageTemplate.VARIABLES.forEach { v ->
+                            AssistChip(onClick = { viewModel.appendTemplateVariable(v) }, label = { Text(v) })
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "預覽：" + MessageTemplate.render(settings.template, "0912345678", "您的驗證碼 123456", System.currentTimeMillis()).replace("\n", " ⏎ "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = viewModel::resetTemplate) { Text("重設") }
+                    }
+                }
             }
             item {
                 OutlinedTextField(

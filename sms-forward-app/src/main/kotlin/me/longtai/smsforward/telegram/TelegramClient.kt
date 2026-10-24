@@ -16,8 +16,36 @@ import javax.inject.Singleton
  * Uses HttpURLConnection so it needs no extra dependency. All calls run on the IO dispatcher
  * with short timeouts so they stay within the SMS receiver's background window.
  */
+/** One Telegram update. [chatId]/[text] are empty for updates without a text message. */
+data class TgUpdate(val updateId: Long, val chatId: String, val text: String)
+
 @Singleton
 class TelegramClient @Inject constructor() {
+
+    /**
+     * Long-polls for new updates since [offset]. Holds the connection up to [longPollSeconds] on
+     * the server, so the read timeout is set well beyond it. Only message updates are requested.
+     */
+    suspend fun getUpdates(token: String, offset: Long, longPollSeconds: Int): Result<List<TgUpdate>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val path = "getUpdates?offset=$offset&timeout=$longPollSeconds&allowed_updates=%5B%22message%22%5D"
+                val connection = open(token, path, readTimeoutMs = (longPollSeconds + 10) * 1000)
+                connection.requestMethod = "GET"
+                val json = read(connection, token)
+                if (!json.optBoolean("ok", false)) throw IOException(redact(token, json.optString("description", "getUpdates 失敗")))
+                val result = json.optJSONArray("result") ?: return@runCatching emptyList()
+                (0 until result.length()).map { i ->
+                    val update = result.getJSONObject(i)
+                    val message = update.optJSONObject("message")
+                    TgUpdate(
+                        updateId = update.optLong("update_id"),
+                        chatId = message?.optJSONObject("chat")?.opt("id")?.toString() ?: "",
+                        text = message?.optString("text", "") ?: "",
+                    )
+                }
+            }
+        }
 
     /** Sends [text] to [chatId] through the bot. */
     suspend fun sendMessage(token: String, chatId: String, text: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -78,12 +106,12 @@ class TelegramClient @Inject constructor() {
     }
 
     @Suppress("DEPRECATION")
-    private fun open(token: String, path: String): HttpURLConnection {
+    private fun open(token: String, path: String, readTimeoutMs: Int = TIMEOUT_MS): HttpURLConnection {
         require(token.contains(':')) { "Token 格式錯誤" }
         val url = URL("https://api.telegram.org/bot$token/$path")
         return (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = TIMEOUT_MS
-            readTimeout = TIMEOUT_MS
+            readTimeout = readTimeoutMs
         }
     }
 

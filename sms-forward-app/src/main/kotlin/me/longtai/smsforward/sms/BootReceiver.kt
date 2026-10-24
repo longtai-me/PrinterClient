@@ -9,15 +9,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import me.longtai.smsforward.data.ForwardSettingsRepository
+import me.longtai.smsforward.telegram.TelegramServiceController
 import javax.inject.Inject
 
-/** After a reboot, restores the persistent "forwarding is active" banner if it was enabled. */
+/** After a reboot, restores the forwarding banner and the Telegram command listener if they were on. */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: ForwardSettingsRepository
 
     @Inject lateinit var notifications: ForwardNotifications
+
+    @Inject lateinit var serviceController: TelegramServiceController
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -28,6 +31,7 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val settings = settingsRepository.current()
                 notifications.showStatus(settings.enabled, settings.statusSummary())
+                serviceController.sync()
             } finally {
                 pending.finish()
             }

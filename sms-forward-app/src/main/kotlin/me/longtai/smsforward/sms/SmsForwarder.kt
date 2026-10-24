@@ -1,21 +1,15 @@
 package me.longtai.smsforward.sms
 
-import android.content.Context
-import android.os.Build
-import android.telephony.SmsManager
-import dagger.hilt.android.qualifiers.ApplicationContext
 import me.longtai.smsforward.data.ForwardChannel
 import me.longtai.smsforward.data.ForwardLogDao
 import me.longtai.smsforward.data.ForwardLogEntity
 import me.longtai.smsforward.data.ForwardSettings
 import me.longtai.smsforward.data.ForwardSettingsRepository
 import me.longtai.smsforward.data.ForwardStatus
+import me.longtai.smsforward.data.MessageTemplate
 import me.longtai.smsforward.data.PhoneNumbers
 import me.longtai.smsforward.telegram.TelegramClient
 import timber.log.Timber
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,17 +22,18 @@ data class IncomingSms(val from: String, val body: String, val timestamp: Long)
  */
 @Singleton
 class SmsForwarder @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val settingsRepository: ForwardSettingsRepository,
     private val telegramClient: TelegramClient,
+    private val smsSender: SmsSender,
     private val logDao: ForwardLogDao,
     private val notifications: ForwardNotifications,
 ) {
-    private val timeFormat = SimpleDateFormat("MM/dd HH:mm", Locale.TAIWAN)
     private val recentKeys = ArrayDeque<Pair<String, Long>>()
 
     suspend fun handle(sms: IncomingSms) {
         val settings = settingsRepository.current()
+        // Remember the sender so a Telegram "/reply" command can answer them.
+        settingsRepository.setLastInboundSender(sms.from)
         if (!settings.enabled) return
         if (settings.keywords.isNotEmpty() && settings.keywords.none { sms.body.contains(it, ignoreCase = true) }) {
             log(sms, ForwardChannel.GENERAL, "—", ForwardStatus.SKIPPED, "不符關鍵字條件")
@@ -63,7 +58,7 @@ class SmsForwarder @Inject constructor(
             return
         }
         try {
-            sendSms(target, text)
+            smsSender.send(target, text)
             notifications.notifyForwarded(sms.from, "簡訊 $target", success = true)
             log(sms, ForwardChannel.SMS, target, ForwardStatus.SENT, null)
         } catch (e: Exception) {
@@ -91,29 +86,7 @@ class SmsForwarder @Inject constructor(
     }
 
     private fun compose(sms: IncomingSms, settings: ForwardSettings): String =
-        if (settings.includeSenderInfo) {
-            "[轉發] ${sms.from} ${timeFormat.format(Date(sms.timestamp))}\n${sms.body}"
-        } else {
-            sms.body
-        }
-
-    private fun sendSms(target: String, message: String) {
-        val smsManager = smsManager()
-        val parts = smsManager.divideMessage(message)
-        if (parts.size <= 1) {
-            smsManager.sendTextMessage(target, null, message, null, null)
-        } else {
-            smsManager.sendMultipartTextMessage(target, null, parts, null, null)
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun smsManager(): SmsManager =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            context.getSystemService(SmsManager::class.java)
-        } else {
-            SmsManager.getDefault()
-        }
+        MessageTemplate.render(settings.template, sms.from, sms.body, sms.timestamp)
 
     /** Drops the same message if SMS_RECEIVED double-fires within a few seconds. */
     private fun isDuplicate(sms: IncomingSms): Boolean {
@@ -145,7 +118,7 @@ class SmsForwarder @Inject constructor(
         val settings = settingsRepository.current()
         val results = mutableListOf<String>()
         if (settings.smsReady) {
-            runCatching { sendSms(settings.targetNumber, TEST_MESSAGE) }
+            runCatching { smsSender.send(settings.targetNumber, TEST_MESSAGE) }
                 .onSuccess { results += "簡訊已送出" }
                 .onFailure { results += "簡訊失敗：${it.message}" }
         }
