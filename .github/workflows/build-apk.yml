@@ -46,11 +46,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK (platform 36 + build-tools)
         uses: android-actions/setup-android@v3
-
-      - name: Install SDK Platform 36 (Android 16)
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        with:
+          # Override the action's default packages ("tools platform-tools"):
+          # the legacy `tools` package was removed from Google's repository and
+          # makes the default install fail. Install only current, valid packages.
+          # build-tools 35.0.0 covers AGP 8.9.1's default; 36.0.0 matches API 36.
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0 build-tools;36.0.0'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
