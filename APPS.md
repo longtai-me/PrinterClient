@@ -13,6 +13,18 @@
 
 ---
 
+## 打包與安裝（Android 16／17）
+
+四支 App 皆以 **Android 16（API 36）** 為目標建置；`targetSdk 36` 的 APK 同時適用於 **Android 16 與 Android 17** 裝置。
+
+- **最省事：GitHub Actions 自動打包** — 推上分支後，到 GitHub **Actions → Build APKs** 下載 `printerclient-apks` 內的 `.apk`，本機不需安裝 Android SDK。
+- **本機建置**：Android Studio Meerkat（2024.3.1 Patch 1）以上 ＋ SDK Platform 36 ＋ JDK 17；或命令列 `./gradlew :pos-app:assembleDebug`。
+
+> 完整步驟、正式簽章設定、安裝方式請見 **[RELEASE.md](RELEASE.md)**。
+> 工具鏈：AGP 8.9.1、Gradle 8.11.1。
+
+---
+
 ## 功能
 
 ### 收銀 POS（`pos-app`）

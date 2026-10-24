@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "me.longtai.core.ui"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
